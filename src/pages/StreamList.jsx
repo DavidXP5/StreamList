@@ -1,10 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 function StreamList() {
   const [streamItem, setStreamItem] = useState('')
-  const [streamList, setStreamList] = useState([])
+  const [streamList, setStreamList] = useState(() => {
+  const savedList = localStorage.getItem('streamList')
+
+  return savedList ? JSON.parse(savedList) : []
+  })
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState('')
+
+  useEffect(() => {
+  localStorage.setItem('streamList', JSON.stringify(streamList))
+}, [streamList])
 
   function handleSubmit(event) {
   event.preventDefault()
