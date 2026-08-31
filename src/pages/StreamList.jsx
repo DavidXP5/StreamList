@@ -3,40 +3,58 @@ import { useEffect, useState } from 'react'
 function StreamList() {
   const [streamItem, setStreamItem] = useState('')
   const [streamList, setStreamList] = useState(() => {
-  const savedList = localStorage.getItem('streamList')
+  try {
+    const savedList = JSON.parse(
+      localStorage.getItem('streamList')
+    )
 
-  return savedList ? JSON.parse(savedList) : []
-  })
+    return Array.isArray(savedList) ? savedList : []
+  } catch {
+    return []
+  }
+})
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState('')
 
   useEffect(() => {
-  localStorage.setItem('streamList', JSON.stringify(streamList))
+  try {
+    localStorage.setItem(
+      'streamList',
+      JSON.stringify(streamList)
+    )
+  } catch {
+    console.error('Unable to save StreamList to localStorage.')
+  }
 }, [streamList])
 
   function handleSubmit(event) {
   event.preventDefault()
 
+  const trimmedItem = streamItem.trim()
+
+  if (!trimmedItem) {
+    return
+  }
+
   const newItem = {
-    id: Date.now(),
-    title: streamItem,
+    id: crypto.randomUUID(),
+    title: trimmedItem,
     completed: false
   }
 
-  setStreamList([...streamList, newItem])
-  console.log(newItem)
+  setStreamList((prev) => [...prev, newItem])
   setStreamItem('')
 }
 
 function deleteItem(id) {
-  setStreamList(
-    streamList.filter((item) => item.id !== id)
+  setStreamList((prev) =>
+    prev.filter((item) => item.id !== id)
   )
 }
 
 function toggleComplete(id) {
-  setStreamList(
-    streamList.map((item) =>
+  setStreamList((prev) =>
+    prev.map((item) =>
       item.id === id
         ? { ...item, completed: !item.completed }
         : item
@@ -50,10 +68,16 @@ function startEditing(item) {
 }
 
 function saveEdit(id) {
-  setStreamList(
-    streamList.map((item) =>
+  const trimmedText = editText.trim()
+
+  if (!trimmedText) {
+    return
+  }
+
+  setStreamList((prev) =>
+    prev.map((item) =>
       item.id === id
-        ? { ...item, title: editText }
+        ? { ...item, title: trimmedText }
         : item
     )
   )

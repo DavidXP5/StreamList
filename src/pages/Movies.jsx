@@ -4,17 +4,27 @@ function Movies() {
   const [searchTerm, setSearchTerm] = useState('')
   const [movies, setMovies] = useState([])
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
 
   const apiKey = import.meta.env.VITE_TMDB_API_KEY
 
   async function searchMovies(event) {
     event.preventDefault()
 
+    const query = searchTerm.trim()
+    setHasSearched(true)
+
+    if (!query) {
+      return
+    }
+
     try {
       setError('')
+      setLoading(true)
 
       const response = await fetch(
-        `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(searchTerm)}`
+        `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}`
       )
 
       if (!response.ok) {
@@ -23,9 +33,12 @@ function Movies() {
 
       const data = await response.json()
 
-      setMovies(data.results)
-    } catch (error) {
-      setError(error.message)
+      setMovies(data.results ?? [])
+    } catch {
+      setMovies([])
+      setError('Unable to retrieve movie data. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -44,12 +57,16 @@ function Movies() {
           required
         />
 
-        <button type="submit">
-          Search
+        <button type="submit" disabled={loading}>
+          {loading ? 'Searching...' : 'Search'}
         </button>
       </form>
 
       {error && <p>{error}</p>}
+
+      {!loading && !error && movies.length === 0 && searchTerm && (
+        <p>No movies found for "{searchTerm}".</p>
+      )}
 
       <section className="movie-results">
         {movies.map((movie) => (
@@ -64,11 +81,15 @@ function Movies() {
             <h2>{movie.title}</h2>
 
             <p>
-              Release Date: {movie.release_date || 'Unknown'}
+              Release Date: {movie.release_date
+                ? new Date(movie.release_date + 'T00:00:00').toLocaleDateString('en-US')
+                : 'Unknown'}
             </p>
 
             <p>
-              Rating: {movie.vote_average.toFixed(1)} / 10
+              Rating: {movie.vote_average != null
+                ? `${movie.vote_average.toFixed(1)} / 10`
+                : 'N/A'}
             </p>
 
             <p>{movie.overview}</p>
